@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>智能报警接线助手</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to bottom, #ffffff, #dfe9f3);
+            margin: 0;
+            padding: 0;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        header {
+            background: linear-gradient(to right, #43cea2, #185a9d);
+            color: white;
+            padding: 25px 0;
+            font-size: 36px;
+            font-weight: bold;
+            text-align: center;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            letter-spacing: 1px;
+        }
+
+        .container {
+            display: flex;
+            width: 90%;
+            max-width: 1200px;
+            margin: 40px auto;
+            gap: 30px;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: #f9fcfd;
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            font-size: 25px;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 25px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 导航栏样式 */
+        nav {
+            background: #343a40;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+            /* 新增样式 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            display: inline-block;
+            /* 新增样式 */
+            border-radius: 5px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        nav a:hover {
+            background-color: #495057;
+            transform: translateY(-2px);
+        }
+
+        /* 功能使用样式 */
+        .recording-section,
+        .model-section {
+            flex: 1;
+            padding: 25px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .recording-section:hover,
+        .model-section:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .control-panel {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .transcription-box {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 100px;
+            margin-top: 20px;
+            border: 1px solid #e9ecef;
+        }
+
+        #transcription-content {
+            white-space: pre-wrap;
+            text-align: left;
+            margin: 0;
+            font-size: 18px;
+            line-height: 1.6;
+            color: #495057;
+        }
+
+        button {
+            padding: 15px 40px;
+            margin: 10px;
+            background: linear-gradient(to right, #43cea2, #185a9d);
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: background 0.3s ease, transform 0.2s ease,
+                box-shadow 0.3s ease;
+        }
+
+        button:hover {
+            background: linear-gradient(to right, #185a9d, #43cea2);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            transform: scale(1.05);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 25px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        th,
+        td {
+            padding: 15px;
+            border: 1px solid #e9ecef;
+            text-align: center;
+        }
+
+        th {
+            background: linear-gradient(to right, #43cea2, #185a9d);
+            color: white;
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        tr:hover {
+            background-color: #e9ecef;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            background-color: #ccc;
+            transition: background-color 0.3s ease;
+        }
+
+        .status-active {
+            background-color: #43cea2;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        h3 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #185a9d;
+            text-align: center;
+        }
+
+        /* 新增样式 */
+        #history-panel {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #history-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        #history-list li {
+            padding: 10px;
+            border-bottom: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        #history-list li:hover {
+            background-color: #e9ecef;
+        }
+
+        #usage-instructions {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 隐藏所有内容区域，初始状态只显示Home */
+        #function-section,
+        #history-section,
+        #usage-section,
+        #model-section {
+            display: none;
+        }
+
+        /* 表格容器样式 */
+        #table-container {
+            margin-top: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            background-color: white;
+        }
+
+        /* 分页样式 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            padding: 8px 16px;
+            margin: 0 5px;
+            border: 1px solid #ddd;
+            background-color: white;
+            color: #333;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .pagination button:hover {
+            background-color: #eee;
+        }
+
+        .pagination button.active {
+            background-color: #43cea2;
+            color: white;
+            border-color: #43cea2;
+        }
+
+        /* 模型输出区域样式 */
+        #model-output {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            white-space: pre-wrap;
+            /* 保留换行和空格 */
+            font-family: monospace;
+            /* 等宽字体 */
+        }
+    </style>
+</head>
+
+<body>
+    <header>智能报警接线助手</header>
+    <nav>
+        <a href="#" onclick="showSection('home')">首页</a>
+        <a href="#" onclick="showSection('function')">功能使用</a>
+        <a href="#" onclick="showSection('history')">历史记录</a>
+        <a href="#" onclick="showSection('usage')">使用方法</a>
+    </nav>
+    <div class="container">
+        <div class="sidebar">
+            <!-- 侧边栏内容 -->
+            <h3>导航</h3>
+            <ul>
+                <li><a href="#" onclick="showSection('home')">首页</a></li>
+                <li><a href="#" onclick="showSection('function')">功能使用</a></li>
+                <li><a href="#" onclick="showSection('history')">历史记录</a></li>
+                <li><a href="#" onclick="showSection('usage')">使用方法</a></li>
+            </ul>
+        </div>
+        <div class="main-content">
+            <!-- Home 页面 -->
+            <div id="home-section">
+                <h2>欢迎使用智能报警接线助手</h2>
+                <p>
+                    在120、119等紧急救援领域，时间就是生命。接线员需要在高压环境下与报警人快速沟通，准确获取现场关键信息，从而迅速、合理地派出救援力量。然而，传统的人工接线员在高强度的工作压力下，可能会出现信息遗漏或判断滞后的情况，影响救援效果。
+                </p>
+                <p>
+                    本系统旨在开发基于大语言模型的实时接线员辅助系统，以提升紧急救援过程中的信息传递准确性和效率。通过引入大语言模型技术，实时辅助接线员精准提问，帮助其快速识别现场重要信息，并自动生成格式化的救援力量派出表单，确保信息的快速、准确传递和救援资源的合理调度。
+                </p>
+                <p>
+                    与现有基于语音识别和信息整理的应急响应系统不同，本项目旨在创新性地将大语言模型应用于实时情境理解与决策支持，提升现场信息的采集准确性，优化救援资源配置，进而提高救援响应的速度和精准度。
+                </p>
+            </div>
+
+            <!-- 功能使用 页面 -->
+            <div id="function-section">
+                <div class="recording-section">
+                    <div class="control-panel">
+                        <button onclick="toggleRecording()" id="record-button">
+                            <span id="status-indicator" class="status-indicator"></span>
+                            开始录音
+                        </button>
+                    </div>
+                    <div class="transcription-box">
+                        <p id="transcription-content">等待开始录音...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 模型分析 页面 -->
+            <div id="model-section">
+                <h3>模型分析结果</h3>
+                <div id="table-container">
+                    <!-- 表格将在此处动态生成 -->
+                </div>
+                <button onclick="exportTableToExcel()" style="margin-top: 20px">
+                    导出表格
+                </button>
+                <!-- 模型输出区域 -->
+                <div id="model-output">
+                    <!-- 模型输出的 JSON 数据将显示在这里 -->
+                </div>
+            </div>
+
+            <!-- 历史记录 页面 -->
+            <div id="history-section">
+                <div id="history-panel">
+                    <h3>历史记录</h3>
+                    <input type="text" id="history-search" placeholder="搜索历史记录..." oninput="searchHistory()" />
+                    <ul id="history-list">
+                        <!-- 历史记录将在此处动态添加 -->
+                    </ul>
+                    <div class="pagination" id="pagination">
+                        <!-- 分页按钮 -->
+                    </div>
+                    <button onclick="exportAllToExcel()" style="margin-top: 20px">
+                        批量导出
+                    </button>
+                    <div id="record-details">
+                        <!-- 记录详情 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 使用方法 页面 -->
+            <div id="usage-section">
+                <div id="usage-instructions">
+                    <h3>使用方法</h3>
+                    <p>1. 点击“开始录音”按钮开始录音。系统将请求麦克风权限，请允许。</p>
+                    <p>2. 请清晰地描述报警事件的地点、情况、伤亡程度等关键信息。</p>
+                    <p>
+                        3.
+                        录音结束后，系统将自动转录您的语音，并利用大语言模型分析提取关键信息，生成救援力量派出表单。
+                    </p>
+                    <p>
+                        4. 您可以在“模型分析结果”区域查看生成的表单，并导出为Excel文件。
+                    </p>
+                    <p>5. 您可以在“历史记录”面板中查看之前的记录，并重新查看或导出。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isRecording = false;
+        let recognition = null;
+        let audioRecorder = null;
+        let audioChunks = [];
+        let history = JSON.parse(localStorage.getItem("history") || "[]"); // 用于存储历史记录
+        let fullTranscript = ""; // 全局变量，用于保存完整的转录文本
+        let currentPage = 1; // 当前页码
+        const recordsPerPage = 15; // 每页显示的记录数
+        let searchTerm = ""; // 保存搜索词
+        let filteredHistory = []; // 保存过滤后的历史记录
+        let intervalId = null; // 用于存储定时器的 ID
+        let latestModelData = null; // 用于存储最新的模型数据
+
+        function initSpeechRecognition() {
+            if (
+                !("webkitSpeechRecognition" in window) &&
+                !("SpeechRecognition" in window)
+            ) {
+                alert("您的浏览器不支持语音识别功能");
+                return null;
+            }
+
+            const SpeechRecognition =
+                window.SpeechRecognition || window.webkitSpeechRecognition;
+            const newRecognition = new SpeechRecognition(); // 创建新的 recognition 对象
+
+            newRecognition.continuous = true;
+            newRecognition.interimResults = true;
+            newRecognition.lang = "zh-CN";
+
+            newRecognition.onresult = (event) => {
+                let interimTranscript = "";
+                let finalTranscript = "";
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                fullTranscript += finalTranscript; // 累加到完整文本
+                document.getElementById("transcription-content").textContent =
+                    fullTranscript + interimTranscript;
+            };
+
+            newRecognition.onerror = (event) => {
+                console.error("语音识别错误:", event.error);
+                stopRecording();
+            };
+
+            newRecognition.onend = () => {
+                console.log("语音识别结束");
+                if (isRecording) {
+                    // 如果在录音状态结束，重新启动
+                    startRecording();
+                }
+            };
+
+            return newRecognition; // 返回新的 recognition 对象
+        }
+
+        function toggleRecording() {
+            if (!isRecording) {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        }
+
+        function stopRecording() {
+            // 停止并释放语音识别资源
+            if (recognition) {
+                recognition.stop();
+                recognition.onresult = null;
+                recognition.onerror = null;
+                recognition.onend = null;
+                recognition = null;
+            }
+
+            // 停止并释放音频录制资源
+            if (audioRecorder) {
+                // 先停止录音
+                if (audioRecorder.state !== "inactive") {
+                    audioRecorder.stop();
+                }
+
+                // 停止所有媒体轨道
+                if (audioRecorder.stream) {
+                    audioRecorder.stream.getTracks().forEach((track) => {
+                        track.stop();
+                        track.enabled = false;
+                    });
+                }
+
+                audioRecorder = null;
+            }
+
+            // 重置状态
+            isRecording = false;
+            audioChunks = [];
+            updateUI(false);
+            clearInterval(intervalId); // 停止定时发送
+            intervalId = null; // 清空 intervalId
+
+            // 停止发送数据后，显示模型结果区域并更新表格
+            if (latestModelData) {
+                displayResults(latestModelData);
+            }
+            showSection("model");
+        }
+
+        function startRecording() {
+            // 确保所有资源已释放
+            if (recognition || audioRecorder) {
+                stopRecording();
+            }
+
+            // 创建全新的语音识别实例
+            recognition = initSpeechRecognition();
+            if (!recognition) return;
+
+            // 获取新的媒体流
+            navigator.mediaDevices
+                .getUserMedia({
+                    audio: true
+                })
+                .then((stream) => {
+                    // 创建新的音频录制实例
+                    audioRecorder = new MediaRecorder(stream);
+
+                    // 重置录音数据缓存
+                    audioChunks = [];
+
+                    audioRecorder.ondataavailable = (e) => {
+                        audioChunks.push(e.data);
+                    };
+
+                    audioRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, {
+                            type: "audio/wav"
+                        });
+                        processAudio(audioBlob);
+                        stream.getTracks().forEach((track) => track.stop()); // 确保释放媒体流
+                    };
+
+                    audioRecorder.start();
+                    recognition.start();
+                    isRecording = true;
+                    updateUI(true);
+                    fullTranscript = "";
+                    document.getElementById("transcription-content").textContent =
+                        "录音进行中...";
+
+                    // 启动定时器，每 5 秒发送一次聊天记录
+                    intervalId = setInterval(sendTranscription, 5000);
+                })
+                .catch((err) => {
+                    console.error("麦克风访问失败:", err);
+                    alert("请允许麦克风权限后重试");
+                });
+        }
+
+        function updateUI(recording) {
+            const button = document.getElementById("record-button");
+            const indicator = document.getElementById("status-indicator");
+
+            button.textContent = recording ? "结束录音" : "开始录音";
+            if (recording) {
+                indicator.classList.add("status-active");
+            } else {
+                indicator.classList.remove("status-active");
+            }
+        }
+
+        // 新增：发送聊天记录到后端
+        function sendTranscription() {
+            if (!isRecording) {
+                clearInterval(intervalId); // 如果停止录音，清除定时器
+                return;
+            }
+
+            const transcription = document.getElementById("transcription-content").textContent;
+
+            fetch('http://127.0.0.1:5000/process_text', { // 确保 URL 与 Flask 应用一致
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text: transcription
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // 在模型输出区域显示 JSON 数据
+                    document.getElementById("model-output").textContent = JSON.stringify(data, null, 2);
+
+                    // 保存最新的模型数据
+                    latestModelData = data;
+                    // 修改：直接将 JSON 数据转换为表格
+                    displayResults(data);
+
+                    // 保存当前记录到历史记录
+                    saveToHistory({
+                        transcription: transcription,
+                        modelData: data,
+                        timestamp: new Date().getTime(),
+                    });
+
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById("model-output").textContent = "Error: " + error;
+                    // 修改：显示错误信息
+                    displayError("请求失败，请检查网络连接。");
+                });
+        }
+
+        function processAudio(audioBlob) {
+            // 这里是你的模型处理数据的地方
+            const modelData = {
+                地点: "南京路900号",
+                情况: "车祸，电线杆倒塌",
+                伤亡程度: "两人受伤",
+                接警时间: new Date().toLocaleString(),
+            };
+
+            // 保存当前记录
+            saveToHistory({
+                transcription: document.getElementById("transcription-content")
+                    .textContent,
+                modelData: modelData,
+                timestamp: new Date().getTime(),
+            });
+
+            displayResults(modelData);
+            fullTranscript = ""; // 重置 fullTranscript
+        }
+
+        function displayResults(modelData) {
+            // 显示模型分析结果区域
+            showSection("model");
+
+            let tableContainer = document.getElementById("table-container");
+            if (!modelData || typeof modelData !== 'object') {
+                console.error("Invalid modelData:", modelData);
+                tableContainer.innerHTML = "<p>模型数据无效，无法显示。</p>";
+                return;
+            }
+
+            // 动态生成表格内容
+            let tableHTML = `
+                <table>
+            `;
+
+            // 遍历 modelData 的键值对
+            for (const key in modelData) {
+                if (modelData.hasOwnProperty(key)) {
+                    tableHTML += `
+                        <tr>
+                            <th>${key}</th>
+                            <td>${modelData[key]}</td>
+                        </tr>
+                    `;
+                }
+            }
+
+            tableHTML += `
+                </table>
+            `;
+
+            tableContainer.innerHTML = tableHTML;
+        }
+
+        // 新增：显示错误信息
+        function displayError(errorMessage) {
+            let tableContainer = document.getElementById("table-container");
+            tableContainer.innerHTML = `<p style="color: red;">错误：${errorMessage}</p>`;
+        }
+
+        function exportTableToExcel() {
+            console.log("exportTableToExcel called");
+
+            // 1. 获取 record-details 区域的表格
+            const recordDetailsDiv = document.getElementById("record-details");
+            if (!recordDetailsDiv) {
+                alert("没有可导出的数据！请先选择一条历史记录。");
+                console.log("record-details div not found");
+                return;
+            }
+
+            const table = recordDetailsDiv.querySelector("table");
+            if (!table) {
+                alert("没有可导出的数据！该记录详情中没有表格。");
+                console.log("Table not found in record-details div");
+                return;
+            }
+
+            console.log("Table:", table);
+            console.log("XLSX:", XLSX);
+
+            try {
+                // 2. 将 HTML 表格转换为工作表
+                const ws = XLSX.utils.table_to_sheet(table);
+
+                // 创建工作簿
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "报警信息");
+
+                // 生成 Excel 文件并下载
+                XLSX.writeFile(wb, "报警信息.xlsx");
+
+                console.log("Excel file exported successfully!");
+            } catch (error) {
+                console.error("Error exporting Excel file:", error);
+                alert("导出 Excel 文件时发生错误！请查看控制台。");
+            }
+        }
+
+
+        function saveToHistory(record) {
+            history.push(record);
+            // 按照时间戳倒序排序 (从近到远)
+            history.sort((a, b) => b.timestamp - a.timestamp);
+            localStorage.setItem("history", JSON.stringify(history));
+            updateHistoryPanel();
+        }
+
+        function searchHistory() {
+            searchTerm = document
+                .getElementById("history-search")
+                .value.toLowerCase();
+            filteredHistory = history.filter((record) => {
+                // 搜索转录文本和模型数据
+                const transcription = record.transcription.toLowerCase();
+                const modelDataString = JSON.stringify(record.modelData).toLowerCase();
+                return (
+                    transcription.includes(searchTerm) ||
+                    modelDataString.includes(searchTerm)
+                );
+            });
+            currentPage = 1; // 重置页码
+            updateHistoryPanel();
+        }
+
+        function updateHistoryPanel() {
+            const historyList = document.getElementById("history-list");
+            historyList.innerHTML = ""; // 清空列表
+
+            // 使用过滤后的历史记录
+            const recordsToDisplay = searchTerm ? filteredHistory : history;
+
+            // 计算起始和结束索引
+            const startIndex = (currentPage - 1) * recordsPerPage;
+            const endIndex = startIndex + recordsPerPage;
+
+            // 获取当前页的记录
+            const currentRecords = recordsToDisplay.slice(startIndex, endIndex);
+
+            currentRecords.forEach((record, index) => {
+                const listItem = document.createElement("li");
+                const recordIndex = startIndex + index + 1; // 显示正确的记录编号
+                listItem.textContent = `记录 ${recordIndex}: ${new Date(record.timestamp).toLocaleString()}`;
+                listItem.onclick = () => displayHistoryRecord(record); // 传递 record 对象
+                historyList.appendChild(listItem);
+            });
+
+            updatePagination();
+        }
+
+        function displayHistoryRecord(record) {
+            // 修改：从 record.modelData 中提取数据
+            const modelData = record.modelData;
+
+            // 确保 modelData 存在且是一个对象
+            if (!modelData || typeof modelData !== 'object') {
+                console.error("Invalid modelData:", modelData);
+                document.getElementById("record-details").innerHTML = "<p>模型数据无效，无法显示。</p>";
+                return;
+            }
+
+            // 构建包含模型数据的表格
+            let tableHTML = `<table>`;
+            for (const key in modelData) {
+                if (modelData.hasOwnProperty(key)) {
+                    tableHTML += `<tr><th>${key}</th><td>${modelData[key]}</td></tr>`;
+                }
+            }
+            tableHTML += `</table>`;
+
+            // 构建记录详情的 HTML
+            const recordDetails = `
+                <h2>记录详情</h2>
+                <h3>通话内容</h3>
+                <p>${record.transcription}</p>
+                <h3>报警信息</h3>
+                ${tableHTML}
+                <button onclick="exportRecordToExcel(this)" data-record='${JSON.stringify(record)}'>导出表格</button>
+            `;
+            document.getElementById("record-details").innerHTML = recordDetails;
+        }
+
+        function showSection(sectionId) {
+            // 隐藏所有内容区域
+            document.getElementById("home-section").style.display = "none";
+            document.getElementById("function-section").style.display = "none";
+            document.getElementById("history-section").style.display = "none";
+            document.getElementById("usage-section").style.display = "none";
+            document.getElementById("model-section").style.display = "none";
+            document.getElementById("record-details").innerHTML = "";
+
+            // 显示选定的内容区域
+            document.getElementById(sectionId + "-section").style.display = "block";
+
+            // 如果显示的是功能使用区域，则同时显示模型分析结果区域
+            if (sectionId === "function") {
+                document.getElementById("model-section").style.display = "block";
+            }
+
+            if (sectionId === "history") {
+                updateHistoryPanel();
+            }
+        }
+
+        function updatePagination() {
+            const paginationDiv = document.getElementById("pagination");
+            paginationDiv.innerHTML = ""; // 清空分页按钮
+
+            const recordsToDisplay = searchTerm ? filteredHistory : history;
+            const totalPages = Math.ceil(recordsToDisplay.length / recordsPerPage);
+
+            for (let i = 1; i <= totalPages; i++) {
+                const pageButton = document.createElement("button");
+                pageButton.textContent = i;
+                pageButton.onclick = () => {
+                    currentPage = i;
+                    updateHistoryPanel();
+                };
+
+                if (i === currentPage) {
+                    pageButton.classList.add("active");
+                }
+
+                paginationDiv.appendChild(pageButton);
+            }
+        }
+
+        function exportAllToExcel() {
+            // 使用过滤后的历史记录或全部历史记录
+            const recordsToExport = searchTerm ? filteredHistory : history;
+
+            // 创建包含数据的数组
+            const data = recordsToExport.map((record) => {
+                return {
+                    地点: record.modelData["位置信息"],
+                    情况: record.modelData["事件类型"],
+                    };
+            });
+
+            // 创建工作簿和工作表
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(data);
+
+            // 将工作表添加到工作簿
+            XLSX.utils.book_append_sheet(wb, ws, "历史记录");
+
+            // 导出文件
+            XLSX.writeFile(wb, "历史记录.xlsx");
+        }
+
+        function exportRecordToExcel(button) {
+            const record = JSON.parse(button.dataset.record);
+            const modelData = record.modelData;
+
+            // 将 modelData 转换为 Excel 可识别的格式
+            const data = [modelData]; // 将 modelData 放入数组中
+
+            // 创建工作簿和工作表
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(data, {
+                header: Object.keys(modelData)
+            }); // 使用 modelData 的键作为标题
+
+            // 将工作表添加到工作簿
+            XLSX.utils.book_append_sheet(wb, ws, "记录详情");
+
+            // 导出文件
+            XLSX.writeFile(wb, "记录详情.xlsx");
+        }
+
+        // 页面加载时更新历史记录面板
+        window.onload = () => {
+            updateHistoryPanel();
+            showSection("home"); // 默认显示Home页面
+        };
+    </script>
+</body>
+
+</html>
